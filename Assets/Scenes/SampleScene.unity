@@ -280,6 +280,14 @@ MonoBehaviour:
     hasBottomTooth: 1
     hasLeftTooth: 1
     hasRightTooth: 1
+  - type: 1
+    isPermanent: 0
+    gridPosition: {x: 0, y: 2}
+    engineClockwise: 0
+    hasTopTooth: 1
+    hasBottomTooth: 0
+    hasLeftTooth: 0
+    hasRightTooth: 0
 --- !u!4 &606023675
 Transform:
   m_ObjectHideFlags: 0

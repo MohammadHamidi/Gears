@@ -9,14 +9,19 @@ public class GearGridManager : MonoBehaviour
     public GameObject placeholderPrefab;
 
     private Dictionary<Vector2Int, GearTile> grid = new();
+    private Dictionary<Vector2Int, GameObject> placeholderGrid = new();
 
     [Header("Initial Gear Config")]
     public List<GearTileData> initialTiles;
+
+    private float tickInterval = 1f;
+    private float tickTimer = 0f;
 
     void Start()
     {
         BuildGrid();
     }
+
     public bool IsValidAndEmpty(Vector2Int pos)
     {
         if (pos.x < 0 || pos.x >= width || pos.y < 0 || pos.y >= height)
@@ -27,25 +32,43 @@ public class GearGridManager : MonoBehaviour
 
     public void MoveTile(GearTile tile, Vector2Int newPos)
     {
-        if (grid.ContainsKey(tile.GridPosition))
-            grid.Remove(tile.GridPosition);
+        Vector2Int oldPos = tile.GridPosition;
+        if (newPos == oldPos) return;
 
-        tile.data.gridPosition = newPos;
+        // Remove gear from old position
+        if (grid.ContainsKey(oldPos))
+        {
+            grid.Remove(oldPos);
+        }
+
+        // Destroy placeholder at new position
+        if (placeholderGrid.TryGetValue(newPos, out GameObject newPosPlaceholder))
+        {
+            Destroy(newPosPlaceholder);
+            placeholderGrid.Remove(newPos);
+        }
+
+        // Create a placeholder at old position
+        Vector3 oldWorldPos = new Vector3(oldPos.x, oldPos.y, 0);
+        GameObject oldPlaceholder = Instantiate(placeholderPrefab, oldWorldPos, Quaternion.identity, transform);
+        placeholderGrid[oldPos] = oldPlaceholder;
+
+        // Add gear to new position
         grid[newPos] = tile;
-
+        tile.data.gridPosition = newPos;
         tile.transform.position = new Vector3(newPos.x, newPos.y, 0);
+
+        Debug.Log($"[Grid] Moved gear from {oldPos} to {newPos}");
     }
 
     void BuildGrid()
     {
-        // Build a lookup for initial gear positions
         Dictionary<Vector2Int, GearTileData> initialGearLookup = new();
         foreach (var gearData in initialTiles)
         {
             initialGearLookup[gearData.gridPosition] = gearData;
         }
 
-        // Loop through entire grid space
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -63,17 +86,21 @@ public class GearGridManager : MonoBehaviour
                 }
                 else
                 {
-                    // Instantiate empty placeholder
-                    Instantiate(placeholderPrefab, worldPos, Quaternion.identity, transform);
+                    // Instantiate placeholder
+                    GameObject placeholder = Instantiate(placeholderPrefab, worldPos, Quaternion.identity, transform);
+                    placeholderGrid[pos] = placeholder;
                 }
             }
         }
     }
+
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        tickTimer += Time.deltaTime;
+        if (tickTimer >= tickInterval)
         {
-            // Tick all engine gears for testing
+            tickTimer = 0f;
+
             foreach (var gear in grid.Values)
             {
                 if (gear.data.type == GearType.Engine)
